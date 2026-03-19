@@ -69,7 +69,8 @@ export function ImportMappingDialog({ fileData, onConfirm, onCancel }: Props) {
                     sampleName: m.name,
                     data: dataPoints,
                     visible: true,
-                    color: getNextColor()
+                    color: getNextColor(),
+                    metadata: fileData.metadata || {}
                 }
             })
             .filter(s => s.data.length > 0)

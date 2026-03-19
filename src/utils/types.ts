@@ -11,5 +11,7 @@ export interface Spectrum {
     data: DataPoint[];
     visible: boolean;
     color: string;
+    targetValue?: number;
+    isCalibration?: boolean;
     metadata?: Record<string, any>;
 }

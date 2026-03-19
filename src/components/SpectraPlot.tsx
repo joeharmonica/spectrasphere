@@ -1,22 +1,27 @@
 import { useLayoutEffect, useRef } from 'react'
-import * as Plotly from 'plotly.js-dist'
+import Plotly from 'plotly.js-dist'
 import type { Spectrum } from '../utils/types'
-import { Download, Share2 } from 'lucide-react'
+import { Download, Bookmark as BookmarkIcon, Tag } from 'lucide-react'
+import type { Bookmark } from '../utils/db'
 
 interface Props {
     spectra: Spectrum[]
     viewMode: 'overlap' | 'stacked'
     viewType: '2d' | '3d'
+    offset?: number
+    bookmarks?: Bookmark[]
+    onAddBookmark?: (wl: number) => void
+    showPeakLabels?: boolean
+    onTogglePeakLabels?: () => void
 }
 
-export function SpectraPlot({ spectra, viewMode, viewType }: Props) {
+export function SpectraPlot({ spectra, viewMode, viewType, offset, bookmarks, onAddBookmark, showPeakLabels, onTogglePeakLabels }: Props) {
     const containerRef = useRef<HTMLDivElement>(null)
     const visibleSpectra = spectra.filter(s => s.visible)
 
     useLayoutEffect(() => {
         if (!containerRef.current || visibleSpectra.length === 0) return
 
-        let cumulativeOffset = 0
         const plotData = visibleSpectra.map((s, idx) => {
             const yRaw = s.data.map(d => d.y)
             const xData = s.data.map(d => d.x)
@@ -36,11 +41,9 @@ export function SpectraPlot({ spectra, viewMode, viewType }: Props) {
 
             let yData = yRaw
             if (viewMode === 'stacked') {
-                yData = yRaw.map(y => y + cumulativeOffset)
-                const minY = Math.min(...yRaw)
-                const maxY = Math.max(...yRaw)
-                const height = maxY - minY
-                cumulativeOffset += height * 1.1
+                const globalMax = Math.max(...visibleSpectra.flatMap(sp => sp.data.map(d => d.y)))
+                const verticalShift = (offset || 10) / 100 * globalMax * idx
+                yData = yRaw.map(y => y + verticalShift)
             }
 
             return {
@@ -61,7 +64,53 @@ export function SpectraPlot({ spectra, viewMode, viewType }: Props) {
             plot_bgcolor: 'transparent',
             hovermode: 'closest',
             showlegend: true,
-            legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center' }
+            legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center' },
+            shapes: (bookmarks || []).map(bm => ({
+                type: 'line',
+                x0: bm.wavelength,
+                x1: bm.wavelength,
+                y0: 0,
+                y1: 1,
+                yref: 'paper',
+                line: {
+                    color: 'rgba(99, 102, 241, 0.5)',
+                    width: 2,
+                    dash: 'dash'
+                }
+            })),
+            annotations: [
+                ...(bookmarks || []).map(bm => ({
+                    x: bm.wavelength,
+                    y: 1,
+                    yref: 'paper',
+                    text: bm.label || `${bm.wavelength} nm`,
+                    showarrow: false,
+                    font: { size: 10, color: '#6366f1', weight: 'bold' },
+                    bgcolor: 'rgba(255, 255, 255, 0.9)',
+                    bordercolor: '#6366f1',
+                    borderwidth: 1,
+                    borderpad: 2,
+                    yanchor: 'bottom'
+                })),
+                ...(showPeakLabels ? visibleSpectra.map((s, idx) => {
+                    const peak = s.data.reduce((max, d) => d.y > max.y ? d : max, s.data[0]);
+                    const globalMax = Math.max(...visibleSpectra.flatMap(sp => sp.data.map(d => d.y)));
+                    const verticalShift = (viewMode === 'stacked') ? (offset || 10) / 100 * globalMax * idx : 0;
+                    return {
+                        x: peak.x,
+                        y: peak.y + verticalShift,
+                        text: s.sampleName,
+                        showarrow: true,
+                        arrowhead: 2,
+                        ax: 0,
+                        ay: -30,
+                        font: { size: 9, color: s.color },
+                        bgcolor: 'rgba(255, 255, 255, 0.8)',
+                        bordercolor: s.color,
+                        borderwidth: 1
+                    };
+                }) : [])
+            ]
         }
 
         if (viewType === '3d') {
@@ -96,6 +145,13 @@ export function SpectraPlot({ spectra, viewMode, viewType }: Props) {
             modeBarButtonsToRemove: ['lasso2d', 'select2d', 'toImage']
         })
 
+        if (onAddBookmark) {
+            (containerRef.current as any).on('plotly_click', (data: any) => {
+                const x = data.points[0].x
+                onAddBookmark(x)
+            })
+        }
+
         const handleResize = () => {
             if (containerRef.current) {
                 Plotly.Plots.resize(containerRef.current)
@@ -110,7 +166,7 @@ export function SpectraPlot({ spectra, viewMode, viewType }: Props) {
                 Plotly.purge(containerRef.current)
             }
         }
-    }, [visibleSpectra, viewMode, viewType])
+    }, [visibleSpectra, viewMode, viewType, offset, bookmarks, showPeakLabels])
 
     const handleDownload = async () => {
         if (!Plotly || !containerRef.current) return
@@ -144,13 +200,22 @@ export function SpectraPlot({ spectra, viewMode, viewType }: Props) {
                         <Download size={14} className="text-indigo-600" />
                         Export Image
                     </button>
-                    <button
-                        className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 rounded-md border border-slate-200 text-xs font-semibold shadow-sm transition-all opacity-50 cursor-not-allowed"
-                        disabled
-                    >
-                        <Share2 size={14} className="text-slate-400" />
-                        Share
-                    </button>
+                    <div className="h-6 w-px bg-slate-200 mx-1" />
+                    <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 shadow-inner">
+                        <button
+                            onClick={onTogglePeakLabels}
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${showPeakLabels ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            <Tag size={12} className={showPeakLabels ? 'text-indigo-500' : 'text-slate-400'} />
+                            <span className="text-[10px] font-black uppercase tracking-tighter">Labels</span>
+                        </button>
+                    </div>
+                    <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 shadow-inner ml-1">
+                        <div className="flex items-center gap-1.5 px-2 text-indigo-700 h-6">
+                            <BookmarkIcon size={12} className="fill-indigo-500/20" />
+                            <span className="text-[10px] font-black uppercase tracking-tighter">Peaks</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div className="flex-1 relative w-full h-full">

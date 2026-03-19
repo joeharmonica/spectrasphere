@@ -1,20 +1,25 @@
-import { Eye, EyeOff, Trash2, FileText, Download, Search, LayoutGrid, SortAsc, Tag } from 'lucide-react'
+import { Eye, EyeOff, Trash2, FileText, Download, Search, LayoutGrid, SortAsc, Tag, Info } from 'lucide-react'
 import type { Spectrum } from '../utils/types'
 import { exportToCSV } from '../utils/exporter'
 import { useState, useMemo } from 'react'
+
+import type { Bookmark } from '../utils/db'
 
 interface Props {
     spectra: Spectrum[];
     onToggle: (id: string) => void;
     onDelete: (id: string) => void;
     onUpdate?: (id: string, updates: Partial<Spectrum>) => void;
+    bookmarks: Bookmark[];
+    onDeleteBookmark: (id: number) => void;
 }
 
 type SortOption = 'name-asc' | 'name-desc' | 'points-asc' | 'points-desc' | 'color'
 
-export function SpectraLibrary({ spectra, onToggle, onDelete, onUpdate }: Props) {
+export function SpectraLibrary({ spectra, onToggle, onDelete, onUpdate, bookmarks, onDeleteBookmark }: Props) {
     const [search, setSearch] = useState('')
     const [sortBy, setSortBy] = useState<SortOption>('name-asc')
+    const [expandedMetadataId, setExpandedMetadataId] = useState<string | null>(null)
 
     const filteredAndSortedSpectra = useMemo(() => {
         let result = [...spectra].filter(s =>
@@ -112,6 +117,15 @@ export function SpectraLibrary({ spectra, onToggle, onDelete, onUpdate }: Props)
                                         <p className="text-[10px] font-medium text-slate-400 truncate uppercase tracking-tight">{s.filename}</p>
                                     </div>
 
+                                    <button
+                                        onClick={() => setExpandedMetadataId(expandedMetadataId === s.id ? null : s.id)}
+                                        className={`p-1.5 rounded-lg transition-colors ${s.metadata && Object.keys(s.metadata).length > 0 ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' : 'text-slate-300 bg-slate-50 cursor-not-allowed opacity-50'}`}
+                                        disabled={!s.metadata || Object.keys(s.metadata).length === 0}
+                                        title={s.metadata && Object.keys(s.metadata).length > 0 ? 'View Instrument Metadata' : 'No Metadata Available'}
+                                    >
+                                        <Info size={16} />
+                                    </button>
+
                                     <div className="w-3.5 h-3.5 rounded-full shrink-0 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)] border-2 border-white box-content" style={{ backgroundColor: s.color }} />
 
                                     <button
@@ -122,26 +136,92 @@ export function SpectraLibrary({ spectra, onToggle, onDelete, onUpdate }: Props)
                                     </button>
                                 </div>
 
-                                <div className="flex items-center gap-2 pl-10">
-                                    <div className="flex-1 relative group/label">
-                                        <Tag size={10} className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-300" />
-                                        <input
-                                            type="text"
-                                            placeholder="Add label..."
-                                            value={s.label || ''}
-                                            onChange={(e) => onUpdate?.(s.id, { label: e.target.value })}
-                                            className="w-full text-[10px] pl-4 font-medium text-slate-500 bg-transparent border-none outline-none focus:text-indigo-600 placeholder:text-slate-300"
-                                        />
+                                {expandedMetadataId === s.id && s.metadata && (
+                                    <div className="mb-3 p-3 bg-slate-50 rounded-xl border border-slate-200 animate-in fade-in slide-in-from-top-1 overflow-hidden">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-2">
+                                            <Info size={10} className="text-indigo-400" />
+                                            Instrument Metadata
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-medium text-slate-600">
+                                            {Object.entries(s.metadata).map(([key, val]) => (
+                                                <div key={key} className="flex flex-col gap-0.5 min-w-0">
+                                                    <span className="text-slate-400 font-bold uppercase tracking-tight truncate shrink-0">{key}</span>
+                                                    <span className="text-slate-900 truncate" title={String(val)}>{String(val)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 tabular-nums">
-                                        {s.data.length} pts
-                                    </span>
+                                )}
+
+                                <div className="flex flex-col gap-2 pl-10 mt-1">
+                                    <div className="flex items-center gap-3">
+                                        <label className="flex items-center gap-1.5 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={s.isCalibration || false}
+                                                onChange={(e) => onUpdate?.(s.id, { isCalibration: e.target.checked })}
+                                                className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Calibration</span>
+                                        </label>
+
+                                        {s.isCalibration && (
+                                            <div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                                                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-tight">Target</span>
+                                                <input
+                                                    type="number"
+                                                    value={s.targetValue ?? ''}
+                                                    onChange={(e) => onUpdate?.(s.id, { targetValue: parseFloat(e.target.value) })}
+                                                    placeholder="Value"
+                                                    className="w-12 text-[10px] font-bold bg-transparent border-none outline-none focus:ring-0 p-0 text-indigo-700 placeholder:text-indigo-300 tabular-nums"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 relative group/label">
+                                            <Tag size={10} className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-300" />
+                                            <input
+                                                type="text"
+                                                placeholder="Add label..."
+                                                value={s.label || ''}
+                                                onChange={(e) => onUpdate?.(s.id, { label: e.target.value })}
+                                                className="w-full text-[10px] pl-4 font-medium text-slate-500 bg-transparent border-none outline-none focus:text-indigo-600 placeholder:text-slate-300"
+                                            />
+                                        </div>
+                                        <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 tabular-nums">
+                                            {s.data.length} pts
+                                        </span>
+                                    </div>
                                 </div>
                             </li>
                         ))}
                     </ul>
                 )}
             </div>
+
+            {bookmarks.length > 0 && (
+                <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+                        <Tag size={10} className="text-indigo-400" />
+                        Peak Bookmarks
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                        {bookmarks.map(bm => (
+                            <div key={bm.id} className="group flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded-lg shadow-sm hover:border-indigo-300 transition-all">
+                                <span className="text-[10px] font-bold text-indigo-600 tabular-nums">{bm.wavelength} nm</span>
+                                <button
+                                    onClick={() => bm.id && onDeleteBookmark(bm.id)}
+                                    className="p-0.5 text-slate-300 hover:text-red-500 transition-colors"
+                                >
+                                    <Trash2 size={10} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

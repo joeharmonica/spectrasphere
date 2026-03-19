@@ -1,73 +1,63 @@
-# React + TypeScript + Vite
+# SpectraSphere Professional
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **High-Fidelity Spectral Data Exploration & Analytical Benchmarking**
 
-Currently, two official plugins are available:
+SpectraSphere Professional is a state-of-the-art web application designed for spectroscopic research. It provides researchers with powerful tools for multi-dimensional spectral visualization, advanced chemometric modeling, and automated research reporting.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🌟 Key Features
 
-## React Compiler
+### 1. Advanced Spectral Visualization
+- **Stacked & Overlap Modes**: Toggle between comparative overlapping and clean vertical stacking with adjustable offsets.
+- **Dynamic Peak Analysis**: Automated peak detection with on-plot labels and persistent chemical marker bookmarking.
+- **Interactive 2D/3D Plotting**: High-performance rendering of complex datasets with zero latency.
+- **Micro-interactions**: Hover-sync between spectra library and plot indicators.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 2. Scientific Chemometrics
+- **Multivariate Modeling**: Full-scale implementation of **Partial Least Squares (PLS)** and **Principal Component Regression (PCR)**.
+- **Validation Suite**: Integrated **k-Fold Cross-Validation** (None, 3, 5, 10) with **RMSECV** calculation to ensure model robustness.
+- **Feature Selection**: Define precise wavelength windows to filter noise and target specific molecular absorption bands.
+- **Pre-processing**: Built-in SNV (Standard Normal Variate) and Savitzky-Golay (1st Derivative) smoothing.
 
-## Expanding the ESLint configuration
+### 3. Local-First Architecture
+- **Persistent Data**: Powered by **IndexedDB (Dexie.js)**. Your spectra, calibration targets, and analysis results stay in your browser—no cloud required.
+- **Metadata Management**: Detailed instrument metadata and sample tracking (Model, Lot, Operator).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 4. Professional Reporting
+- **Benchmarking Scoreboard**: Instantly compare multiple analytical models by R² and RMSEC/CV scores.
+- **Portable Exports**: Download standalone, visually rich **HTML Research Reports** containing AI-driven performance summaries and parity data.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🚀 Tech Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Core**: React 19, TypeScript, Vite
+- **Charting**: Plotly.js (Optimized for Large Data)
+- **Database**: Dexie.js (IndexedDB)
+- **Math/ML**: `ml-pls`, `ml-pca`, `ml-regression`, `ml-matrix`
+- **Styling**: TailwindCSS & Custom Glassmorphic CSS
+- **Icons**: Lucide React
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🛠️ Development
+
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+
+### Setup
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📜 Principles
+Adheres to the `PRINCIPLES.MD` core directives:
+- **Elegance**: Premium visual aesthetics and motion design.
+- **Simplicity**: Complex scientific tools hidden behind intuitive UI.
+- **Efficiency**: Zero-lag manipulation of thousands of data points.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+Developed with ❤️ for the Spectroscopic Community.
